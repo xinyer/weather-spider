@@ -2,20 +2,19 @@
 from weather import weather
 import requests
 from bs4 import BeautifulSoup
+import os
+from db import saveDb
 
-# w = weather('xian', "小雨", '8/14', 23, 12, '南', '2级')
-# w.tostring()
+weathers = []
 
 def load_weather(url):
     res = requests.get(url)
     res.encoding = 'utf-8'
     html = res.text 
-    # print(html)
+
     soup = BeautifulSoup(html, 'html.parser')
     tables = soup.find_all('table')
-    # print(tables)
 
-    weathers = []
     for table in tables:
         trs = table.find_all('tr')
         
@@ -23,21 +22,22 @@ def load_weather(url):
         firstTds = dateTr.find_all('td')
         date_day = firstTds[2].text
         date_night = firstTds[3].text
+        province = ''
         
         for index in range(len(trs)):
             if index > 1:
                 infos = trs[index].find_all('td')
-
                 if index == 2:
-                    city = infos[0].find('a').text
+                    province = infos[0].find('a').text
+                    city = infos[1].find('a').text
                     phenomenon_day = infos[2].text
                     wind_day = infos[3].find_all('span')
                     if len(wind_day) == 2:
                         wind_direct_day = wind_day[0].text
                         wind_power_day = wind_day[1].text
                     else:
-                        wind_direct_day = 'no data'
-                        wind_power_day = 'no data'
+                        wind_direct_day = '-'
+                        wind_power_day = '-'
 
                     temperature_day = infos[4].text
 
@@ -47,8 +47,8 @@ def load_weather(url):
                         wind_direct_night = wind_night[0].text
                         wind_power_night = wind_night[1].text
                     else:
-                        wind_direct_night = 'no data'
-                        wind_power_night = 'no data'
+                        wind_direct_night = '-'
+                        wind_power_night = '-'
 
                     temperature_night = infos[7].text
                 else:
@@ -59,8 +59,8 @@ def load_weather(url):
                         wind_direct_day = wind_day[0].text
                         wind_power_day = wind_day[1].text
                     else:
-                        wind_direct_day = 'no data'
-                        wind_power_day = 'no data'
+                        wind_direct_day = '-'
+                        wind_power_day = '-'
 
                     temperature_day = infos[3].text
 
@@ -70,23 +70,63 @@ def load_weather(url):
                         wind_direct_night = wind_night[0].text
                         wind_power_night = wind_night[1].text
                     else:
-                        wind_direct_night = 'no data'
-                        wind_power_night = 'no data'
+                        wind_direct_night = '-'
+                        wind_power_night = '-'
 
                     temperature_night = infos[6].text
                 
-                weather_day = weather(city, date_day, phenomenon_day, temperature_day, wind_direct_day, wind_power_day)
-                weathers.append(weather_day)
-                weather_night = weather(city, date_night, phenomenon_night, temperature_night, wind_direct_night, wind_power_night)
-                weathers.append(weather_night)
+                weather_day = weather(province, city, date_day, phenomenon_day, temperature_day, wind_direct_day, wind_power_day)
+                if phenomenon_day != '-':
+                    weathers.append(weather_day)
+                    pass
+                
+                weather_night = weather(province, city, date_night, phenomenon_night, temperature_night, wind_direct_night, wind_power_night)
+                if phenomenon_night != '-':
+                    weathers.append(weather_night)
+                    pass
+
                 pass
 
-    with open('weather.txt', 'w') as f:
-        for w in weathers:
-            f.write(w.city + " " + w.date + " " + w.phenomenon + " " + w.temperature + " " + w.wind_direction + "\n")
-        pass
+# 华北天气
+url_hb = 'http://www.weather.com.cn/textFC/hb.shtml'
+load_weather(url_hb)
+
+# 东北天气
+url_db = 'http://www.weather.com.cn/textFC/db.shtml'
+load_weather(url_db)
+
+# 华东天气
+url_hd = 'http://www.weather.com.cn/textFC/hd.shtml'
+load_weather(url_hd)
+
+# 华中天气
+url_hz = 'http://www.weather.com.cn/textFC/hz.shtml'
+load_weather(url_hz)
+
+# 华南天气
+url_hn = 'http://www.weather.com.cn/textFC/hn.shtml'
+load_weather(url_hn)
+
+# 西北天气
+url_xb = 'http://www.weather.com.cn/textFC/xb.shtml'
+load_weather(url_xb)
+
+# 西南天气
+url_xn = 'http://www.weather.com.cn/textFC/xn.shtml'
+load_weather(url_xn)
+
+path = 'weather.txt'
+if os.path.exists(path):
+    os.remove(path)
+
+with open(path, 'w') as f:
+    for w in weathers:
+        f.write(w.province + " " + w.city + " " + w.date + " " + w.phenomenon + " " + w.temperature + " " + w.wind_direction + " " + w.wind_power + "\n")
     pass
+pass
 
+saveDb(weathers)
 
-url = 'http://www.weather.com.cn/textFC/hb.shtml'
-load_weather(url)
+# 港澳台天气
+# url_gat = 'http://www.weather.com.cn/textFC/gat.shtml'
+# load_weather(url_gat)
